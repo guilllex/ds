@@ -1,18 +1,18 @@
 #!/usr/bin/env python 
 # -*- coding: utf-8 -*- 
-
- 
 import os
-
+import thread
+import time
 import requests
 import getpass
-#import curses
 import json
 from prettytable import PrettyTable
+from docker import Client
+#cli = Client(base_url='unix://var/run/docker.sock')
 
 actualPosition = 1
 staticUrl = ""
-nom = ""
+name = ""
 
 msgMenuPosition = "Vous etes dans le menu "
 msgGreeting = "Bounjour, "
@@ -20,7 +20,7 @@ msgMenuSelect = "Entrez votre choix: "
 msgYourUrl = "Entrez l'url: "
 msgYourUrlParam = "Entrez le paramètre :"
 
-msgMauvaiseTouche = nom + " , vous avez appuyer sur une mauvaise touche!"
+msgMauvaiseTouche = name + " , vous avez appuyer sur une mauvaise touche!"
 
 # meteo start
 
@@ -48,14 +48,36 @@ else:
     
 # meteo stop
 
-nom = raw_input("Entrez votre nom: ")
-msgGreeting = msgGreeting + nom
+os.system('clear')  # on linux / os x
+
+# splash screen start
+
+print('\x1b[1;32;40m' + '8888b.   dP\"Yb   dP\"\"b8 88  dP 88 88b 88  dP\"\"b8' + '\x1b[0m')
+print('\x1b[1;32;40m' + ' 8I  Yb dP   Yb dP   `\" 88odP  88 88Yb88 dP   `\"' + '\x1b[0m')
+print('\x1b[1;32;40m' + ' 8I  dY Yb   dP Yb      88\"Yb  88 88 Y88 Yb  \"88' + '\x1b[0m')
+print('\x1b[1;32;40m' + '8888Y\"   YbodP   YboodP 88  Yb 88 88  Y8  YboodP' + '\x1b[0m')
+print(" ")
+print('\x1b[1;32;40m' + '.dP\"Y8 888888    db    888888 88  dP\"Yb  88b 88' + '\x1b[0m')
+print('\x1b[1;32;40m' + '`Ybo.\"   88     dPYb     88   88 dP   Yb 88Yb88 ' + '\x1b[0m')
+print('\x1b[1;32;40m' + 'o.`Y8b   88    dP__Yb    88   88 Yb   dP 88 Y88 ' + '\x1b[0m')
+print('\x1b[1;32;40m' + '8bodP\'   88   dP\"\"\"\"Yb   88   88  YbodP  88  Y8 ' + '\x1b[0m')
+print(" ")
+
+# splash screen start
+
+time.sleep(2)
+
+name = raw_input("Enter your name: ")
+os.system('clear')  # on linux / os x
+msgGreeting = msgGreeting + name
+print('\x1b[1;32;40m' + 'Doking Station' + '\x1b[0m')
+print(" ")
 print(msgGreeting)
 
 while actualPosition >=1:
            
-    t = PrettyTable(['1', '2', '3', 'q', 'Meteo'])
-    t.add_row(['Serveurs', 'Donnes', 'Mongodb', 'Quiter', 'meteoSoleilDemain'])
+    t = PrettyTable(['1', '2', '3', '4', '5'])
+    t.add_row(['Docker', 'Monitor', 'Manage', 'Configuration', 'Quit'])
     
     thisMsgMenuSelect = t
     
@@ -69,93 +91,67 @@ while actualPosition >=1:
 
     msgActualPosition = (msgMenuPosition, actualPosition)
     
-    
-    # choisir le server
-    # TODO un systeme de gestion des serveurs
+    # TODO here we have to manage Docker container details from a mongodb so we can create, edit and delete Docker container details entry
     if actualPosition == "1":
         
         print(msgActualPosition)
-    
-        t = PrettyTable(['ID', 'Name', 'URL'])
-        t.add_row(['1', 'local', '127.0.0.1'])
-        t.add_row(['2', 'kubuntu dev server', 'http://192.168.1.116:88'])
+        # TODO fetch real entry from mongodb
+        t = PrettyTable(['ID', 'Name', 'port'])
+        t.add_row(['1', 'python', '88:88'])
+        t.add_row(['2', 'owncloud', '80:80'])
         print (t)
-        
-        serverChoice = raw_input("Entrez le ID du serveur auquel vous voulez accéder: ")
+        # TODO fetch real entry from mongodb
+        serverChoice = raw_input("Witch Docker ID you want to modify?: ")
 
-        if serverChoice == "1":
+        if serverChoice == t[1]:
         
-            staticUrl = "127.0.0.1"
+            print("What do you want modify")
+            print(" ")
+            print("1 - ID")
+            print("2 - Name")
+            print("3 - Port")
         
         elif serverChoice == "2":
         
-            #url = 'http://192.168.1.116:88'
-            #payload = '{\"name\":\"test\"}'
-            #options = {}
-            #options['headers'] = {}
-            #options['headers']['Content-Type'] = 'application/json'
-            #options['parameters'] = {}
-            #options['parameters']['api_key'] = 'my_api_key'
-            #result = platform.api.post(url, payload, options)
-            #data = result.read()
-            #print data
-            #jsonData = bunchify(json.loads(data))
-            
-            staticUrl = "http://192.168.1.116:88/api/v2/joomla/_table/" + "ud3yg_users?fields=*&include_count=true&include_schema=true&" + "token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjEsInVzZXJfaWQiOjEsImVtYWlsIjoiZ3VpbGxhdW1ldHJlbXBlQGRldmVsc29sdXRpb24uY29tIiwiZm9yZXZlciI6ZmFsc2UsImlzcyI6Imh0dHA6XC9cLzE5Mi4xNjguMS4xMTY6ODhcL2FwaVwvdjJcL3N5c3RlbVwvYWRtaW5cL3Nlc3Npb24iLCJpYXQiOjE0Nzg4MjM5NDQsImV4cCI6MTQ3ODgyNzU0NCwibmJmIjoxNDc4ODIzOTQ0LCJqdGkiOiI1NzdkZmYwOTc5YzM1OWU2MzU1N2MzNWYzOTM3OGQ5YyJ9.81VVynN1926HRbHmH1377MXixuDRFKMZ3hajAoJt7iA"
-            
-            print (staticUrl)
+            print("What do you want modify")
+            print(" ")
+            print("1 - ID")
+            print("2 - Name")
+            print("3 - Port")
         
         else:
         
-            print("Mauvais choix")
+            print("Wrong choice!")
         
         
 
     elif actualPosition == "2":
 
         print(msgActualPosition)
-        url = 'http://192.168.1.116:88/api/v2/system/admin/session'
-        headers = {'connection': 'keep-alive', 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-DreamFactory-Api-Key': '36fda24fe5588fa4285ac6c6c2fdfbdb6b6bc9834699774c9bf777f706d05a88', 'duration': '10', 'session_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjEsInVzZXJfaWQiOjEsImVtYWlsIjoiZ3VpbGxhdW1ldHJlbXBlQGRldmVsc29sdXRpb24uY29tIiwiZm9yZXZlciI6ZmFsc2UsImlzcyI6Imh0dHA6XC9cLzE5Mi4xNjguMS4xMTY6ODhcL2FwaVwvdjJcL3N5c3RlbVwvYWRtaW5cL3Nlc3Npb24iLCJpYXQiOjE0Nzg4NDc2NTQsImV4cCI6MTQ3ODg1MTI1NCwibmJmIjoxNDc4ODQ3NjU0LCJqdGkiOiJhZTc3OTYyMjg1OWNmZWQyNTM0YTcyN2ZhNzk4ZTI3ZiJ9.VRBy34GFf3yGKZasKzAhL8pA_1Rbiq-OVGBadxz6B6M'}
-        
-        adminLoginEmail = raw_input("Entrez votre email admin: ")
-        adminLoginPass = getpass.getpass("Entrez votre email admin: ")
-        
-        r = requests.get(url, headers=headers, auth=(adminLoginEmail, adminLoginPass))
 
-        rStatusCode = r.status_code
-        print(rStatusCode)
-        rJson = r.json()
-        # print rJson
-        rText = r.text
-        print(rText)
-        
-        rToken = rJson['session_token']
-        rName = rJson['first_name']
-        
-        print("Bonjour " , rName, " Votre token est: ")
-        print(rToken)
-        
-        # TEST fetch and print in a table start
-        
-        #url = raw_input(msgYourUrl)g
-        #param= raw_input(msgYourUrlParam)
-        fullurl = "http://192.168.1.116:88/api/v2/joomla/_table/ud3yg_users?fields=*&token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjEsInVzZXJfaWQiOjEsImVtYWlsIjoiZ3VpbGxhdW1ldHJlbXBlQGRldmVsc29sdXRpb24uY29tIiwiZm9yZXZlciI6ZmFsc2UsImlzcyI6Imh0dHA6XC9cLzE5Mi4xNjguMS4xMTY6ODhcL2FwaVwvdjJcL3N5c3RlbVwvYWRtaW5cL3Nlc3Npb24iLCJpYXQiOjE0Nzg4NDc2NTQsImV4cCI6MTQ3ODg1MTI1NCwibmJmIjoxNDc4ODQ3NjU0LCJqdGkiOiJhZTc3OTYyMjg1OWNmZWQyNTM0YTcyN2ZhNzk4ZTI3ZiJ9.VRBy34GFf3yGKZasKzAhL8pA_1Rbiq-OVGBadxz6B6M"
-
-        resp = requests.get(url=fullurl)
-        respJson = resp.json()
-        
-        
-        
-        for key, value in respJson.items():
-            print(key, value)
-        #print respJson['resource'][item]['name']
-        #dbUserName = resp['resource'][0]['name']
-        
-        #from prettytable import PrettyTable
-        #t = PrettyTable(['Name', 'Age'])
-        #t.add_row(['dbUserName', 24])
-        #t.add_row(['Bob', 19])
-        #print t
+        def input_thread(L):
+            raw_input()
+            L.append(None)
+            
+        def do_print():
+            L = []
+            thread.start_new_thread(input_thread, (L,))
+            while 1:
+                time.sleep(.1)
+                if L: break
+                t = PrettyTable(['Name', 'Port', 'CPU', 'Memory', 'Network'])
+                t.add_row(['Webmin', '1000:1000', '15%', '257M', 'd:205K/u:534k'])
+                print (t)
+                
+                
+                cli = Client(base_url='tcp://127.0.0.1:2375')
+                cli.containers()
+                
+                
+                print("Press <ENTER> to stop and return to the menu")
+                time.sleep(2)
+                os.system('clear')  # on linux / os x
+        do_print()
         
         # TEST fetch and print in a table end
 
